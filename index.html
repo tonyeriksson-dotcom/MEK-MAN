@@ -52,6 +52,9 @@
                 <div>SCORE:<span id="score-display">0000</span></div>
                 <div id="lives-display"></div>
             </div>
+            
+            <div id="timer-display" style="color: #ff00ff; text-align: center; margin-bottom: 15px; font-size: 14px; letter-spacing: 2px;"></div>
+            
             <div id="question-text">LADDAR...</div>
             <div id="answer-buttons"></div>
         </div>
@@ -72,7 +75,7 @@
 </div>
 
 <script>
-    // --- LJUDSYSTEM (8-bit Synthesizer) ---
+    // --- LJUDSYSTEM ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
 
@@ -133,7 +136,7 @@
         gameOver: () => { playTone(400, 'sawtooth', 0.2, 0.2); setTimeout(() => playTone(350, 'sawtooth', 0.2, 0.2), 200); setTimeout(() => playTone(300, 'sawtooth', 0.2, 0.2), 400); setTimeout(() => playTone(200, 'sawtooth', 0.5, 0.2), 600); if(musicPlaying) toggleMusic(); }
     };
 
-    // --- FRÅGEBANK (150 FRÅGOR) ---
+    // --- FRÅGEBANK ---
     const allQuestions = [
         // NIVÅ 1 (Grundläggande underhåll & verktyg)
         { lvl: 1, q: "Vilken färg har kylarvätska av typen Longlife (G12+)?", r: "Oftast röd eller rosa", f: ["Alltid mörkblå nyans", "Oftast neongrön färg", "Alltid klargul nyans"] },
@@ -296,146 +299,184 @@
         { lvl: 5, q: "Nätverkets spänning dippar kraftigt vid last och styrenheten tappar minnet. Vad blir din första felsökningsmetod?", r: "Du sätter probarna för att mäta spänningsfall (Voltage Drop) tvärs över huvudreläet och jordflätan under startögonblicket", f: ["Du demonterar hela den integrerade skärmen från mittkonsolen och börjar löda om de trasiga chippen inuti kretskortet", "Du går direkt på det allra dyraste alternativet och byter okommenterat ut bilens fyratusen-kronors startbatteri", "Du bestämmer dig för att felkoden måste bero på utslitna slitbanor, så du byter snabbt ut de fyra hjulen"] }
     ];
 
-    // --- SPELLOGIK ---
+
+    // --- SPELVARIABLAR ---
     let currentLevel = 1;
     let score = 0;
     let lives = 3;
-    let playerName = "";
-    let activeQuestions = [];
-    let isTransitioning = false;
+    let currentQuestions = [];
+    let questionIndex = 0;
 
+    // --- BONUSVARIABLAR ---
+    let isBonusRound = false;
+    let bonusTimeLeft = 15;
+    let bonusTimer;
+    let bonusQuestionCount = 0;
+
+    const bonusQuestionsBank = [
+        { q: "BONUS: Vad är det primära syftet med en 'Wastegate' på en turbo?", r: "Reglera/begränsa laddtrycket", f: ["Kyla ner insugsluften", "Släppa ut övertryck i insuget", "Smörja turbons axel"] },
+        { q: "BONUS: Vad betyder felkoden P0300 i en OBD2-läsare?", r: "Slumpmässig/flera feltändningar", f: ["För lågt bränsletryck", "Lambdasond bank 1 trasig", "Katalysatorrening under tröskel"] },
+        { q: "BONUS: Vilken enhet mäts bränslespridarnas öppningstid i?", r: "Millisekunder (ms)", f: ["Mikrosekunder (µs)", "Spänning (Volt)", "Procent (%)"] },
+        { q: "BONUS: Vad kallas det när motoroljan späds ut av oförbränt bränsle?", r: "Oil dilution (Oljespädning)", f: ["Oil sludging (Oljeslagg)", "Oil starvation (Oljebrist)", "Oil foaming (Oljeskumning)"] },
+        { q: "BONUS: Vilket nätverksprotokoll används oftast för bilens styrdon?", r: "CAN-bus", f: ["LIN-bus", "Ethernet", "FlexRay"] }
+    ];
+
+    // --- FUNKTIONER ---
     function initGame() {
-        try {
-            let nameInput = document.getElementById('player-name').value.trim();
-            if(nameInput) playerName = nameInput.toUpperCase();
-            else playerName = "MEK-PRO";
-            
-            try {
-                localStorage.setItem('mekman_current_player', playerName);
-            } catch(e) {
-                console.log("Localstorage spärrat. Hoppar över.");
-            }
-
-            initAudio();
-            sfx.start();
-            
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('end-screen').style.display = 'none';
-            document.getElementById('game-area').style.display = 'block';
-            
-            currentLevel = 1;
-            score = 0;
-            lives = 3;
-            
-            updateDisplay();
-            loadLevel();
-        } catch(err) {
-            alert("Kunde inte starta spelet: " + err.message);
-        }
-    }
-
-    function updateDisplay() {
-        document.getElementById('lvl-display').innerText = currentLevel;
-        document.getElementById('score-display').innerText = score.toString().padStart(4, '0');
-        document.getElementById('lives-display').innerText = '❤'.repeat(lives);
-    }
-
-    function loadLevel() {
-        activeQuestions = allQuestions.filter(q => q.lvl === currentLevel).sort(() => Math.random() - 0.5);
-        showNextQuestion();
-    }
-
-    function showNextQuestion() {
-        isTransitioning = false;
+        const playerName = document.getElementById("player-name").value;
+        if(playerName.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
         
-        if (activeQuestions.length === 0) {
-            currentLevel++;
-            if (currentLevel > 5) {
-                endGame(true);
-                return;
-            }
-            sfx.levelUp();
-            alert("NIVÅ KLAR! LADDAR NIVÅ " + currentLevel + "...");
-            loadLevel();
-            return;
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("game-area").style.display = "block";
+        sfx.start();
+        
+        currentLevel = 1;
+        score = 0;
+        lives = 3;
+        isBonusRound = false;
+        startLevel();
+    }
+
+    function startLevel() {
+        currentQuestions = allQuestions.filter(q => q.lvl === currentLevel).sort(() => 0.5 - Math.random()).slice(0, 5);
+        
+        if(currentQuestions.length === 0) {
+            alert("GRATTIS! Du har klarat alla nuvarande nivåer!");
+            return gameOver();
         }
 
-        const qData = activeQuestions.pop();
-        document.getElementById('question-text').innerText = qData.q;
+        questionIndex = 0;
+        updateUI();
+        showQuestion();
+    }
+
+    function startBonusRound() {
+        isBonusRound = true;
+        bonusQuestionCount = 0;
+        document.getElementById("lvl-display").innerText = " BONUS!";
+        sfx.levelUp(); 
         
-        let answers = [{text: qData.r, correct: true}];
-        qData.f.forEach(fText => answers.push({text: fText, correct: false}));
-        answers.sort(() => Math.random() - 0.5);
+        // Visuell paus innan bonusrundan
+        document.getElementById("timer-display").innerText = "";
+        document.getElementById("question-text").innerHTML = "<br><span style='color:#ff00ff; font-size:16px; text-align:center; display:block; line-height:1.5;'>GÖR DIG REDO FÖR<br>BONUS-RUNDAN!</span>";
+        document.getElementById("answer-buttons").innerHTML = ""; 
         
-        const btnContainer = document.getElementById('answer-buttons');
-        btnContainer.innerHTML = ''; 
+        // Vänta 2.5 sekunder
+        setTimeout(() => {
+            showQuestion();
+        }, 2500);
+    }
+
+    function showQuestion() {
+        let qData;
+        const timerDisplay = document.getElementById("timer-display");
+
+        if (isBonusRound) {
+            qData = bonusQuestionsBank[bonusQuestionCount];
+            bonusTimeLeft = 15;
+            timerDisplay.innerText = "⏳ TID: " + bonusTimeLeft + "s";
+            clearInterval(bonusTimer);
+            bonusTimer = setInterval(() => {
+                bonusTimeLeft--;
+                timerDisplay.innerText = "⏳ TID: " + bonusTimeLeft + "s";
+                if (bonusTimeLeft <= 0) {
+                    clearInterval(bonusTimer);
+                    sfx.wrong();
+                    handleNextQuestion();
+                }
+            }, 1000);
+        } else {
+            qData = currentQuestions[questionIndex];
+            timerDisplay.innerText = "";
+        }
+
+        document.getElementById("question-text").innerText = qData.q;
         
-        answers.forEach(ans => {
-            const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.innerText = "> " + ans.text.toUpperCase();
-            btn.onclick = () => handleAnswer(ans.correct);
-            btnContainer.appendChild(btn);
+        let options = [qData.r, ...qData.f].sort(() => 0.5 - Math.random());
+        let btnHTML = "";
+        options.forEach(opt => {
+            let isCorrect = (opt === qData.r);
+            btnHTML += `<button class="btn" onclick="checkAnswer(${isCorrect})">${opt}</button>`;
         });
+        document.getElementById("answer-buttons").innerHTML = btnHTML;
     }
 
-    function handleAnswer(isCorrect) {
-        if (isTransitioning) return; 
-        isTransitioning = true;
+    function checkAnswer(isCorrect) {
+        clearInterval(bonusTimer);
 
         if (isCorrect) {
             sfx.correct();
-            score += (100 * currentLevel); 
-            // Nivåhöjning sker automatiskt när arrayen tar slut, poängen ackumuleras
+            if (isBonusRound) {
+                score += 200; 
+            } else {
+                score += 100; 
+            }
         } else {
             sfx.wrong();
-            lives--;
-            document.body.classList.add('flash-red');
-            setTimeout(() => document.body.classList.remove('flash-red'), 400);
-        }
-        
-        updateDisplay();
-        
-        if (lives <= 0) {
-            setTimeout(() => endGame(false), 500);
-        } else {
-            setTimeout(showNextQuestion, 600);
-        }
-    }
-
-    function endGame(isVictory) {
-        sfx.gameOver();
-        document.getElementById('game-area').style.display = 'none';
-        document.getElementById('end-screen').style.display = 'block';
-        
-        document.getElementById('end-title').innerText = isVictory ? "SYSTEM BEGRIPET!" : "GAME OVER";
-        document.getElementById('end-title').style.color = isVictory ? "#00ff00" : "#ff0000";
-        document.getElementById('final-score').innerText = score.toString().padStart(4, '0');
-        
-        saveAndShowLeaderboard();
-    }
-
-    function saveAndShowLeaderboard() {
-        try {
-            let lb = JSON.parse(localStorage.getItem('mekman_lb') || '[]');
-            if(score > 0) {
-                lb.push({name: playerName, score: score});
-            }
-            lb.sort((a, b) => b.score - a.score);
-            lb = lb.slice(0, 10);
-            localStorage.setItem('mekman_lb', JSON.stringify(lb));
+            document.body.classList.add("flash-red");
+            setTimeout(() => document.body.classList.remove("flash-red"), 400);
             
-            let lbHtml = '';
-            if(lb.length === 0) lbHtml = "INGA RESULTAT.";
-            lb.forEach((entry, i) => {
-                lbHtml += `<div class="leaderboard-row"><span>${i+1}. ${entry.name}</span><span>${entry.score}</span></div>`;
-            });
-            document.getElementById('lb-content').innerHTML = lbHtml;
-        } catch(e) {
-            document.getElementById('lb-content').innerHTML = "TOPPLISTA EJ TILLGÄNGLIG OFFLINE.";
+            if (!isBonusRound) {
+                lives--; 
+            }
         }
+
+        updateUI();
+
+        if (lives <= 0) {
+            return gameOver();
+        }
+
+        handleNextQuestion();
+    }
+
+    function handleNextQuestion() {
+        if (isBonusRound) {
+            bonusQuestionCount++;
+            if (bonusQuestionCount >= bonusQuestionsBank.length) { 
+                // Bonusnivå klar! Gå till nästa vanliga nivå.
+                isBonusRound = false;
+                currentLevel++;
+                sfx.levelUp();
+                
+                // Visuell paus innan nästa vanliga nivå
+                document.getElementById("timer-display").innerText = "";
+                document.getElementById("question-text").innerHTML = `<br><span style='color:#ffff00; font-size:14px; text-align:center; display:block; line-height:1.5;'>BONUS KLAR!<br><br>GÖR DIG REDO FÖR<br>NIVÅ ${currentLevel}</span>`;
+                document.getElementById("answer-buttons").innerHTML = ""; 
+
+                // Vänta 2.5 sekunder
+                setTimeout(() => {
+                    startLevel();
+                }, 2500);
+
+            } else {
+                showQuestion();
+            }
+        } else {
+            questionIndex++;
+            if (questionIndex >= currentQuestions.length) {
+                startBonusRound();
+            } else {
+                showQuestion();
+            }
+        }
+    }
+
+    function updateUI() {
+        document.getElementById("score-display").innerText = score.toString().padStart(4, '0');
+        document.getElementById("lives-display").innerText = "❤".repeat(lives);
+        if(!isBonusRound) {
+            document.getElementById("lvl-display").innerText = currentLevel;
+        }
+    }
+
+    function gameOver() {
+        sfx.gameOver();
+        clearInterval(bonusTimer); 
+        document.getElementById("game-area").style.display = "none";
+        document.getElementById("end-screen").style.display = "block";
+        document.getElementById("final-score").innerText = score;
     }
 </script>
-
 </body>
 </html>
