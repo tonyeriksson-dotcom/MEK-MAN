@@ -333,12 +333,26 @@
 
 
     const bonusQuestionsBank = [
-        { q: "BONUS: Vad är det primära syftet med en 'Wastegate' på en turbo?", r: "Reglera/begränsa laddtrycket", f: ["Kyla ner insugsluften", "Släppa ut övertryck i insuget", "Smörja turbons axel"] },
-        { q: "BONUS: Vad betyder felkoden P0300 i en OBD2-läsare?", r: "Slumpmässig/flera feltändningar", f: ["För lågt bränsletryck", "Lambdasond bank 1 trasig", "Katalysatorrening under tröskel"] },
-        { q: "BONUS: Vilken enhet mäts bränslespridarnas öppningstid i?", r: "Millisekunder (ms)", f: ["Mikrosekunder (µs)", "Spänning (Volt)", "Procent (%)"] },
-        { q: "BONUS: Vad kallas det när motoroljan späds ut av oförbränt bränsle?", r: "Oil dilution (Oljespädning)", f: ["Oil sludging (Oljeslagg)", "Oil starvation (Oljebrist)", "Oil foaming (Oljeskumning)"] },
-        { q: "BONUS: Vilket nätverksprotokoll används oftast för bilens styrdon?", r: "CAN-bus", f: ["LIN-bus", "Ethernet", "FlexRay"] },
-        { q: "BONUS: Vilken gas mäts i första hand av en lambdasond?", r: "Syre (O2)", f: ["Koldioxid (CO2)", "Kväveoxid (NOx)", "Kolmonoxid (CO)"] }
+        // --- NIVÅ 1 (Grundläggande / Allmän kunskap) ---
+        { lvl: 1, q: "BONUS: Vad är den huvudsakliga uppgiften för en bils termostat?", r: "Reglera motorns arbetstemperatur", f: ["Mäta kupéns temperatur", "Styra bränsleinsprutningen", "Kyla ner oljan"] },
+        { lvl: 1, q: "BONUS: Vad anger siffran '40' i en motorolja med märkningen 5W-40?", r: "Oljans viskositet (tjocklek) vid varm motor", f: ["Oljans ålder i månader", "Lägsta tillåtna utomhustemperatur", "Mängden syntetiska tillsatser i procent"] },
+        { lvl: 1, q: "BONUS: Vilken färg har normalt avgasröken om motorn förbränner mycket olja?", r: "Blåaktig", f: ["Kolsvart", "Helt kritvit", "Gulaktig"] },
+        { lvl: 1, q: "BONUS: Vilken gas mäts i första hand av en lambdasond?", r: "Syre (O2)", f: ["Koldioxid (CO2)", "Kväveoxid (NOx)", "Kolmonoxid (CO)"] },
+        { lvl: 1, q: "BONUS: Vad är ABS-systemet i en bil till för?", r: "Förhindra att hjulen låser sig vid hård inbromsning", f: ["Förstärka bromskraften på bakhjulen", "Automatiskt bromsa för hinder", "Kyla ner bromsskivorna"] },
+
+        // --- NIVÅ 2 (Diagnostik & Komponenter) ---
+        { lvl: 2, q: "BONUS: Vad mäter en luftmassemätare (MAF-sensor)?", r: "Mängden och densiteten på luften som dras in i motorn", f: ["Lufttrycket i insugsröret", "Syrehalten i avgaserna", "Kylarvätskans temperatur"] },
+        { lvl: 2, q: "BONUS: Vad är syftet med ett dubbelmassesvänghjul (DMF)?", r: "Minska vibrationer och ryck i drivlinan", f: ["Öka motorns toppeffekt", "Sänka bränsleförbrukningen", "Göra växlingen snabbare"] },
+        { lvl: 2, q: "BONUS: Vilken funktion har en EGR-ventil?", r: "Återcirkulera avgaser för att sänka förbränningstemperaturen", f: ["Släppa ut övertryck från vevhuset", "Styra laddtrycket på turbon", "Reglera bränsletrycket till spridarna"] },
+        { lvl: 2, q: "BONUS: Vad betyder termen 'Camber-vinkel' vid en hjulinställning?", r: "Hjulets lutning inåt eller utåt i överkant", f: ["Hjulets vinkling i färdriktningen", "Stötdämparens lutning bakåt", "Skillnaden i spårvidd mellan fram och bak"] },
+        { lvl: 2, q: "BONUS: Vad mäter en MAP-sensor?", r: "Det absoluta trycket i insugsröret", f: ["Massan av inkommande luft", "Atmosfärstrycket utanför bilen", "Bränsletrycket i spridarbryggan (Railen)"] },
+
+        // --- NIVÅ 3 (Avancerad Elektronik & Motordelar) ---
+        { lvl: 3, q: "BONUS: Hur fungerar en piezoelektrisk spridare jämfört med en magnetventilsspridare?", r: "Använder kristaller som ändrar form vid spänning, vilket ger snabbare öppning", f: ["Drivs av motorns oljetryck istället för el", "Använder tryckluft för att finfördela bränslet", "Har en roterande nål som fördelar bränslet"] },
+        { lvl: 3, q: "BONUS: I ett friskt CAN-bus nätverk, vad är resistansen när man mäter mellan CAN High och CAN Low (utan batteri)?", r: "Cirka 60 ohm", f: ["Cirka 120 ohm", "0 ohm (kortslutet)", "Oändligt (avbrott)"] },
+        { lvl: 3, q: "BONUS: Vad beskriver 'Squish-area' i en förbränningskammare?", r: "Utrymmet där bränsleblandningen pressas in mot mitten för bättre turbulens", f: ["Området under kolvringarna där olja samlas", "Spelet mellan ventilskaft och ventilstyrning", "Avståndet mellan tändstiftets elektroder"] },
+        { lvl: 3, q: "BONUS: På en oscilloskop-bild av en tändspole, vad indikerar 'brinntiden' (burn time)?", r: "Tiden gnistan faktiskt hoppar över tändstiftets gap", f: ["Tiden det tar för spolen att ladda upp (dwell)", "Tiden från att spridaren öppnar tills gnistan kommer", "Tiden då transistorn är helt öppen"] },
+        { lvl: 3, q: "BONUS: Vilken enhet mäts bränslespridarnas öppningstid oftast i när man läser livedata?", r: "Millisekunder (ms)", f: ["Mikrosekunder (µs)", "Spänning (Volt)", "Procent (%)"] }
     ];
 
     // --- SPELVARIABLAR ---
