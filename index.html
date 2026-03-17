@@ -408,7 +408,7 @@
         sfx.levelUp(); 
         
         // SLUMPA BONUSFRÅGORNA SÅ DE INTE ÄR SAMMA VARJE GÅNG
-        currentBonusQuestions = bonusQuestionsBank.sort(() => 0.5 - Math.random()).slice(0, 5);
+        currentBonusQuestions = bonusQuestionsBank.filter(q => q.lvl === currentLevel).sort(() => 0.5 - Math.random()).slice(0, 5);
 
         document.getElementById("timer-display").innerText = "";
         document.getElementById("question-text").innerHTML = "<br><span style='color:#ff00ff; font-size:16px; text-align:center; display:block; line-height:1.5;'>GÖR DIG REDO FÖR<br>BONUS-RUNDAN!</span>";
