@@ -25,8 +25,8 @@
         input[type="text"] { font-family: 'Press Start 2P', cursive; background: #000; color: #00ff00; border: 2px solid #fff; padding: 15px; width: 80%; font-size: 12px; margin-bottom: 20px; text-align: center; text-transform: uppercase;}
         input[type="text"]:focus { outline: none; border-color: #ff0000; }
         
-        #leaderboard { text-align: left; font-size: 10px; line-height: 2; color: #00ff00; background: #111; padding: 20px; border: 2px dashed #333; margin-bottom: 20px;}
-        .leaderboard-row { display: flex; justify-content: space-between; }
+        .leaderboard { text-align: left; font-size: 10px; line-height: 2; color: #00ff00; background: #111; padding: 20px; border: 2px dashed #333; margin-bottom: 20px;}
+        .leaderboard-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
         
         .flash-red { animation: blink 0.1s step-end 4; }
         @keyframes blink { 50% { background-color: #ff0000; } }
@@ -41,6 +41,11 @@
     <div id="quiz-container">
         
         <div id="start-screen">
+            <div class="leaderboard">
+                <div style="text-align:center; margin-bottom:10px; color:#fff;">--- TOP 10 HIGH SCORES ---</div>
+                <div id="start-lb-content">Laddar resultat...</div>
+            </div>
+
             <p style="font-size: 10px; line-height: 2.5; margin-bottom: 20px;">PRO-DATABASE v4.0 LOADED.<br>AUDIO SYSTEM ONLINE.<br>ENTER NAME TO COMPETE.</p>
             <input type="text" id="player-name" placeholder="SKRIV DITT NAMN HÄR" maxlength="15">
             <button class="btn" style="text-align:center;" onclick="initGame()">[ STARTA DIAGNOSTIK ]</button>
@@ -63,9 +68,9 @@
             <h2 id="end-title" style="color:#ff0000; font-size:16px;">GAME OVER</h2>
             <p style="font-size: 10px; margin-bottom:20px;">DIN POÄNG: <span id="final-score"></span></p>
             
-            <div id="leaderboard">
+            <div class="leaderboard">
                 <div style="text-align:center; margin-bottom:10px; color:#fff;">--- TOP 10 HIGH SCORES ---</div>
-                <div id="lb-content">Laddar resultat...</div>
+                <div id="end-lb-content">Laddar resultat...</div>
             </div>
 
             <button class="btn" style="text-align:center;" onclick="location.reload()">[ SPELA IGEN ]</button>
@@ -80,12 +85,8 @@
     let audioCtx;
 
     function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new AudioContext();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
     }
 
     function playTone(freq, type, duration, vol = 0.1) {
@@ -136,6 +137,34 @@
         gameOver: () => { playTone(400, 'sawtooth', 0.2, 0.2); setTimeout(() => playTone(350, 'sawtooth', 0.2, 0.2), 200); setTimeout(() => playTone(300, 'sawtooth', 0.2, 0.2), 400); setTimeout(() => playTone(200, 'sawtooth', 0.5, 0.2), 600); if(musicPlaying) toggleMusic(); }
     };
 
+    // --- LEADERBOARD LOGIK ---
+    function renderLeaderboards() {
+        let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
+        let html = "";
+        
+        if (lb.length === 0) {
+            html = "<div style='text-align:center;'>INGA POÄNG ÄNNU! BLI DEN FÖRSTA!</div>";
+        } else {
+            html = lb.map((entry, i) => `<div class="leaderboard-row"><span>${i+1}. ${entry.name}</span><span>${entry.score} P</span></div>`).join('');
+        }
+
+        document.getElementById('start-lb-content').innerHTML = html;
+        document.getElementById('end-lb-content').innerHTML = html;
+    }
+
+    function saveScore(name, finalScore) {
+        let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
+        lb.push({ name: name.toUpperCase(), score: finalScore });
+        lb.sort((a, b) => b.score - a.score); // Sortera högst poäng först
+        lb = lb.slice(0, 10); // Behåll bara topp 10
+        localStorage.setItem('mekman_leaderboard', JSON.stringify(lb));
+        renderLeaderboards();
+    }
+
+    // --- FRÅGEBANK ---
+    
+        
+      
     // --- FRÅGEBANK ---
     const allQuestions = [
         // NIVÅ 1 (Grundläggande underhåll & verktyg)
@@ -300,32 +329,40 @@
     ];
 
 
-    // --- SPELVARIABLAR ---
-    let currentLevel = 1;
-    let score = 0;
-    let lives = 3;
-    let currentQuestions = [];
-    let questionIndex = 0;
+  
 
-    // --- BONUSVARIABLAR ---
-    let isBonusRound = false;
-    let bonusTimeLeft = 15;
-    let bonusTimer;
-    let bonusQuestionCount = 0;
 
     const bonusQuestionsBank = [
         { q: "BONUS: Vad är det primära syftet med en 'Wastegate' på en turbo?", r: "Reglera/begränsa laddtrycket", f: ["Kyla ner insugsluften", "Släppa ut övertryck i insuget", "Smörja turbons axel"] },
         { q: "BONUS: Vad betyder felkoden P0300 i en OBD2-läsare?", r: "Slumpmässig/flera feltändningar", f: ["För lågt bränsletryck", "Lambdasond bank 1 trasig", "Katalysatorrening under tröskel"] },
         { q: "BONUS: Vilken enhet mäts bränslespridarnas öppningstid i?", r: "Millisekunder (ms)", f: ["Mikrosekunder (µs)", "Spänning (Volt)", "Procent (%)"] },
         { q: "BONUS: Vad kallas det när motoroljan späds ut av oförbränt bränsle?", r: "Oil dilution (Oljespädning)", f: ["Oil sludging (Oljeslagg)", "Oil starvation (Oljebrist)", "Oil foaming (Oljeskumning)"] },
-        { q: "BONUS: Vilket nätverksprotokoll används oftast för bilens styrdon?", r: "CAN-bus", f: ["LIN-bus", "Ethernet", "FlexRay"] }
+        { q: "BONUS: Vilket nätverksprotokoll används oftast för bilens styrdon?", r: "CAN-bus", f: ["LIN-bus", "Ethernet", "FlexRay"] },
+        { q: "BONUS: Vilken gas mäts i första hand av en lambdasond?", r: "Syre (O2)", f: ["Koldioxid (CO2)", "Kväveoxid (NOx)", "Kolmonoxid (CO)"] }
     ];
+
+    // --- SPELVARIABLAR ---
+    let currentPlayerName = "";
+    let currentLevel = 1;
+    let score = 0;
+    let lives = 3;
+    let currentQuestions = [];
+    let currentBonusQuestions = [];
+    let questionIndex = 0;
+    let isBonusRound = false;
+    let bonusTimeLeft = 15;
+    let bonusTimer;
+    let bonusQuestionCount = 0;
+
+    // Kalla på denna direkt när sidan laddas så start-topplistan fylls i
+    renderLeaderboards();
 
     // --- FUNKTIONER ---
     function initGame() {
-        const playerName = document.getElementById("player-name").value;
-        if(playerName.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
+        const nameInput = document.getElementById("player-name").value;
+        if(nameInput.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
         
+        currentPlayerName = nameInput.trim();
         document.getElementById("start-screen").style.display = "none";
         document.getElementById("game-area").style.display = "block";
         sfx.start();
@@ -356,15 +393,14 @@
         document.getElementById("lvl-display").innerText = " BONUS!";
         sfx.levelUp(); 
         
-        // Visuell paus innan bonusrundan
+        // SLUMPA BONUSFRÅGORNA SÅ DE INTE ÄR SAMMA VARJE GÅNG
+        currentBonusQuestions = bonusQuestionsBank.sort(() => 0.5 - Math.random()).slice(0, 5);
+
         document.getElementById("timer-display").innerText = "";
         document.getElementById("question-text").innerHTML = "<br><span style='color:#ff00ff; font-size:16px; text-align:center; display:block; line-height:1.5;'>GÖR DIG REDO FÖR<br>BONUS-RUNDAN!</span>";
         document.getElementById("answer-buttons").innerHTML = ""; 
         
-        // Vänta 2.5 sekunder
-        setTimeout(() => {
-            showQuestion();
-        }, 2500);
+        setTimeout(() => { showQuestion(); }, 2500);
     }
 
     function showQuestion() {
@@ -372,9 +408,10 @@
         const timerDisplay = document.getElementById("timer-display");
 
         if (isBonusRound) {
-            qData = bonusQuestionsBank[bonusQuestionCount];
+            qData = currentBonusQuestions[bonusQuestionCount];
             bonusTimeLeft = 15;
             timerDisplay.innerText = "⏳ TID: " + bonusTimeLeft + "s";
+            
             clearInterval(bonusTimer);
             bonusTimer = setInterval(() => {
                 bonusTimeLeft--;
@@ -406,26 +443,17 @@
 
         if (isCorrect) {
             sfx.correct();
-            if (isBonusRound) {
-                score += 200; 
-            } else {
-                score += 100; 
-            }
+            score += isBonusRound ? 200 : 100; 
         } else {
             sfx.wrong();
             document.body.classList.add("flash-red");
             setTimeout(() => document.body.classList.remove("flash-red"), 400);
-            
-            if (!isBonusRound) {
-                lives--; 
-            }
+            if (!isBonusRound) lives--; 
         }
 
         updateUI();
 
-        if (lives <= 0) {
-            return gameOver();
-        }
+        if (lives <= 0) return gameOver();
 
         handleNextQuestion();
     }
@@ -433,22 +461,16 @@
     function handleNextQuestion() {
         if (isBonusRound) {
             bonusQuestionCount++;
-            if (bonusQuestionCount >= bonusQuestionsBank.length) { 
-                // Bonusnivå klar! Gå till nästa vanliga nivå.
+            if (bonusQuestionCount >= currentBonusQuestions.length) { 
                 isBonusRound = false;
                 currentLevel++;
                 sfx.levelUp();
                 
-                // Visuell paus innan nästa vanliga nivå
                 document.getElementById("timer-display").innerText = "";
                 document.getElementById("question-text").innerHTML = `<br><span style='color:#ffff00; font-size:14px; text-align:center; display:block; line-height:1.5;'>BONUS KLAR!<br><br>GÖR DIG REDO FÖR<br>NIVÅ ${currentLevel}</span>`;
                 document.getElementById("answer-buttons").innerHTML = ""; 
 
-                // Vänta 2.5 sekunder
-                setTimeout(() => {
-                    startLevel();
-                }, 2500);
-
+                setTimeout(() => { startLevel(); }, 2500);
             } else {
                 showQuestion();
             }
@@ -465,9 +487,7 @@
     function updateUI() {
         document.getElementById("score-display").innerText = score.toString().padStart(4, '0');
         document.getElementById("lives-display").innerText = "❤".repeat(lives);
-        if(!isBonusRound) {
-            document.getElementById("lvl-display").innerText = currentLevel;
-        }
+        if(!isBonusRound) document.getElementById("lvl-display").innerText = currentLevel;
     }
 
     function gameOver() {
@@ -476,6 +496,9 @@
         document.getElementById("game-area").style.display = "none";
         document.getElementById("end-screen").style.display = "block";
         document.getElementById("final-score").innerText = score;
+        
+        // Spara poängen till topplistan när man dör
+        saveScore(currentPlayerName, score);
     }
 </script>
 </body>
