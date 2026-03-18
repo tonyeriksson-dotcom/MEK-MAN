@@ -351,7 +351,7 @@ const bonusQuestionsBank = [
     // ========================================================
 
     // --- SPELVARIABLAR OCH INSTÄLLNINGAR ---
-    const questionsPerLevel = [4, 4, 3, 2, 2]; // Antal frågor för nivå 1 till 5
+   const questionsPerLevel = [15, 15, 15, 15, 15]; // Antal frågor för nivå 1 till 5
     const bonusPerLevel = 2; // Antal bonusfrågor mellan varje nivå
 
     let currentPlayerName = "";
@@ -381,15 +381,19 @@ const bonusQuestionsBank = [
     }
 
     function startLevel() {
-        if(currentLevel > 5) { // Spelet har 5 nivåer
+        if(currentLevel > 5) { 
             document.getElementById("end-title").innerText = "GRATTIS DU VANN!";
             document.getElementById("end-title").style.color = "#00ff00";
             return gameOver();
         }
 
+        // Här tittar spelet på listan ovan och ser att det ska vara 15 frågor
         let numQuestions = questionsPerLevel[currentLevel - 1];
-        // Hämta frågor för rätt nivå och blanda dem, klipp sedan ut exakt rätt antal
-        currentQuestions = allQuestions.filter(q => q.lvl === currentLevel).sort(() => 0.5 - Math.random()).slice(0, numQuestions);
+        
+        // HÄR ÄR MAGIN: ".slice(0, numQuestions)" är saxen som klipper bort resten!
+        currentQuestions = allQuestions.filter(q => q.lvl === currentLevel)
+                                       .sort(() => 0.5 - Math.random())
+                                       .slice(0, numQuestions);
         
         questionIndex = 0;
         updateUI();
