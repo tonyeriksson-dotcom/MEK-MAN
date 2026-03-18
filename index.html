@@ -10,7 +10,6 @@
         #game-title { font-size: 28px; color: #fff; margin-bottom: 25px; text-shadow: 5px 5px #ff0000; letter-spacing: 3px; }
         #quiz-container { border: 4px solid #fff; padding: 25px; background-color: #000; box-shadow: 12px 12px 0px #333; text-align: left; position: relative; }
         
-        /* MUSIKKNAPP */
         #music-btn { position: absolute; top: -35px; right: 0; font-family: 'Press Start 2P', cursive; font-size: 8px; background: #222; color: #00ff00; border: 1px solid #fff; padding: 8px; cursor: pointer; }
         #music-btn:hover { background: #fff; color: #000; }
 
@@ -86,120 +85,48 @@
 </div>
 
 <script>
-    // ========================================================
-    // --- 1. CHIPTUNE LJUDMOTORN (Web Audio API) ---
-    // (Genererar Nintendo-ljud direkt i kod)
-    // ========================================================
+    // --- LJUDSYSTEM (NINTENDO 8-BIT) ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx;
-    
-    // Funktion för att starta ljudet (måste triggas av användare)
-    function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new AudioContext();
-            console.log("AudioContext Aktiverad!");
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-    }
-
-    // Grundfunktion för att spela en NES-ton
+    function initAudio() { if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
     function playTone(freq, type, duration, vol = 0.1) {
         if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type; // 'square' (fyrkant), 'sawtooth', 'triangle', 'sine'
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
     }
-
-    // --- BAKGRUNDSMUSIK (MEK-LOOP) ---
-    let musicInterval;
-    let musicPlaying = false;
-    const melody = [261.63, 311.13, 392.00, 466.16, 392.00, 311.13]; // C, Eb, G, Bb...
-    let noteIdx = 0;
-
+    let musicInterval; let musicPlaying = false; const melody = [261.63, 311.13, 392.00, 466.16, 392.00, 311.13]; let noteIdx = 0;
     function toggleMusic() {
-        initAudio(); // Se till att ljudet är igång
-        const btn = document.getElementById('music-btn');
-        if (musicPlaying) {
-            clearInterval(musicInterval);
-            musicPlaying = false;
-            btn.innerText = "🎵 MUSIK: AV";
-            btn.style.color = "#00ff00";
-        } else {
-            // Spela en ton var 150:e ms (äkta arpeggio-loop)
-            musicInterval = setInterval(() => {
-                if(audioCtx && audioCtx.state === 'running') {
-                    // NES använder ofta 'square' våg för melodi och bas
-                    playTone(melody[noteIdx], 'square', 0.1, 0.03); 
-                    noteIdx = (noteIdx + 1) % melody.length;
-                }
-            }, 150);
-            musicPlaying = true;
-            btn.innerText = "🎵 MUSIK: PÅ";
-            btn.style.color = "#fff";
-        }
+        initAudio(); const btn = document.getElementById('music-btn');
+        if (musicPlaying) { clearInterval(musicInterval); musicPlaying = false; btn.innerText = "🎵 MUSIK: AV"; btn.style.color = "#00ff00"; } 
+        else { musicInterval = setInterval(() => { if(audioCtx && audioCtx.state === 'running') { playTone(melody[noteIdx], 'square', 0.1, 0.03); noteIdx = (noteIdx + 1) % melody.length; } }, 150); musicPlaying = true; btn.innerText = "🎵 MUSIK: PÅ"; btn.style.color = "#fff"; }
     }
-
-    // --- LJUDEFFEKTER (SFX) ---
     const sfx = {
-        start: () => { // Start-fanfar
-            playTone(440, 'square', 0.1); 
-            setTimeout(() => playTone(660, 'square', 0.1), 100);
-            setTimeout(() => playTone(880, 'square', 0.2), 200);
-        },
-        correct: () => { // Rätt svar (kort, positiv)
-            playTone(880, 'sine', 0.1); 
-            setTimeout(() => playTone(1760, 'sine', 0.2), 100);
-        },
-        wrong: () => { // Fel svar (brutalt, dissonant)
-            playTone(150, 'sawtooth', 0.3, 0.2); // Använder 'sawtooth' för elakare ljud
-        },
-        levelUp: () => { // Nivå upp (stegrande)
-            playTone(440, 'square', 0.1);
-            setTimeout(() => playTone(554, 'square', 0.1), 100);
-            setTimeout(() => playTone(659, 'square', 0.1), 200);
-            setTimeout(() => playTone(880, 'square', 0.3), 300);
-        },
-        gameOver: () => { // Game Over (sorglig)
-            playTone(400, 'sawtooth', 0.2, 0.2);
-            setTimeout(() => playTone(350, 'sawtooth', 0.2, 0.2), 200);
-            setTimeout(() => playTone(300, 'sawtooth', 0.2, 0.2), 400);
-            setTimeout(() => playTone(200, 'sawtooth', 0.5, 0.2), 600);
-            if(musicPlaying) toggleMusic(); // Stäng av musiken om den är igång
-        }
+        start: () => { playTone(440, 'square', 0.1); setTimeout(() => playTone(660, 'square', 0.1), 100); setTimeout(() => playTone(880, 'square', 0.2), 200); },
+        correct: () => { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); },
+        wrong: () => { playTone(150, 'sawtooth', 0.3, 0.2); },
+        levelUp: () => { playTone(440, 'square', 0.1); setTimeout(() => playTone(554, 'square', 0.1), 100); setTimeout(() => playTone(659, 'square', 0.1), 200); setTimeout(() => playTone(880, 'square', 0.3), 300); },
+        gameOver: () => { playTone(400, 'sawtooth', 0.2, 0.2); setTimeout(() => playTone(350, 'sawtooth', 0.2, 0.2), 200); setTimeout(() => playTone(300, 'sawtooth', 0.2, 0.2), 400); setTimeout(() => playTone(200, 'sawtooth', 0.5, 0.2), 600); if(musicPlaying) toggleMusic(); }
     };
-    // ========================================================
 
     // --- LEADERBOARD LOGIK ---
     function renderLeaderboards() {
         let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
         let html = lb.length === 0 ? "<div style='text-align:center;'>INGA POÄNG ÄNNU! BLI DEN FÖRSTA!</div>" : lb.map((entry, i) => `<div class="leaderboard-row"><span>${i+1}. ${entry.name}</span><span>${entry.score} P</span></div>`).join('');
-        document.getElementById('start-lb-content').innerHTML = html; 
-        document.getElementById('end-lb-content').innerHTML = html;
+        document.getElementById('start-lb-content').innerHTML = html; document.getElementById('end-lb-content').innerHTML = html;
     }
-
     function saveScore(name, finalScore) {
         let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
-        lb.push({ name: name.toUpperCase(), score: finalScore }); 
-        lb.sort((a, b) => b.score - a.score); 
-        lb = lb.slice(0, 10);
-        localStorage.setItem('mekman_leaderboard', JSON.stringify(lb)); 
-        renderLeaderboards();
+        lb.push({ name: name.toUpperCase(), score: finalScore }); lb.sort((a, b) => b.score - a.score); lb = lb.slice(0, 10);
+        localStorage.setItem('mekman_leaderboard', JSON.stringify(lb)); renderLeaderboards();
     }
 
     // ========================================================
-    // --- 2. KLISTRA IN DINA FRÅGOR HÄR ---
+    // 1. KLISTRA IN DINA VANLIGA FRÅGOR HÄR:
     // ========================================================
-    // --- FRÅGEBANK ---
     const allQuestions = [
+        const allQuestions = [
         // NIVÅ 1 (Grundläggande underhåll & verktyg)
         { lvl: 1, q: "Vilken färg har kylarvätska av typen Longlife (G12+)?", r: "Oftast röd eller rosa", f: ["Alltid mörkblå nyans", "Oftast neongrön färg", "Alltid klargul nyans"] },
         { lvl: 1, q: "Vilket verktyg minskar risken att runda en hård mutter?", r: "Använd en sexkanthylsa", f: ["Använd en tolvkant", "Använd en skiftnyckel", "Använd en polygriptång"] },
@@ -375,21 +302,14 @@
         { lvl: 5, q: "Du mäter strömkurvan (Ampere) över en elektromagnetisk spridare med oscilloskop. Vad betyder den lilla 'knäcken' (Pintle Bump) på vägen upp i kurvan?", r: "Den visar det exakta mikrosekunden då spridarnålen rent mekaniskt lyfter från sitt säte och bränslet börjar flöda", f: ["Den är en felindikator på att spridarens inre spole har en kortslutning mot godset i motorn", "Den avslöjar att matartrycket fram till högtryckspumpen har sjunkit under ett kritiskt gränsvärde", "Det är den exakta elektriska brytpunkten då motorstyrdonet aktivt klipper bort jordningen till spridaren"] }, 
         { lvl: 5, q: "I en bensinmotor med högtrycksinsprutning (GDI), vad händer om pumpens inloppsventil (Spill Valve) misslyckas med att stänga under pumpens uppåtgående slag?", r: "Inget högt railtryck kan byggas upp, bränslet pressas bara tillbaka ut i lågtryckskretsen och motorn vägrar starta", f: ["Railtrycket skenar okontrollerat ända tills säkerhetsventilen brister eller bränsleröret sprängs", "Injektorerna fastnar elektriskt i ett vidöppet läge vilket omedelbart dränker och hydraulåser motorn", "Systemet går blixtsnabbt över i Open Loop och styrdonet fyrdubblar spridarnas öppningstider för att kompensera"] }, { lvl: 5, q: "Vad krävs rent fysiskt för att en så kallad 'passiv regenerering' av partikelfiltret (DPF) ska inträffa naturligt, t.ex. vid motorvägskörning?", r: "Att avgaserna kontinuerligt håller en extremt hög temperatur (ofta över 350-400°C) för att sotet ska oxidera utan att extra bränsle sprutas in", f: ["Att föraren trampar ner frikopplingspedalen i minst 10 sekunder samtidigt som bilens hastighet överstiger 100 km/h", "Att styrdonet skickar en 100% PWM-signal till alla glödstift under en kraftig och långvarig acceleration", "Att bilens EGR-ventil öppnas fullt ut till 100% för att mata det igensatta filtret med maximerat syreflöde"] }
 
+
     ];
 
-
-  
-
-
-
-
-
-
-
-//Bonusfrågor
-
-const bonusQuestionsBank = [
-        // --- NIVÅ 1 (Grundläggande / Allmän kunskap) ---
+    // ========================================================
+    // 2. KLISTRA IN DINA BONUSFRÅGOR HÄR:
+    // ========================================================
+    const bonusQuestions = [
+         // --- NIVÅ 1 (Grundläggande / Allmän kunskap) ---
         { lvl: 1, q: "BONUS: Vad är den huvudsakliga uppgiften för en bils termostat?", r: "Reglera motorns arbetstemperatur", f: ["Mäta kupéns temperatur", "Styra bränsleinsprutningen", "Kyla ner oljan"] },
         { lvl: 1, q: "BONUS: Vad anger siffran '40' i en motorolja med märkningen 5W-40?", r: "Oljans viskositet (tjocklek) vid varm motor", f: ["Oljans ålder i månader", "Lägsta tillåtna utomhustemperatur", "Mängden syntetiska tillsatser i procent"] },
         { lvl: 1, q: "BONUS: Vilken färg har normalt avgasröken om motorn förbränner mycket olja?", r: "Blåaktig", f: ["Kolsvart", "Helt kritvit", "Gulaktig"] },
@@ -424,10 +344,8 @@ const bonusQuestionsBank = [
         { lvl: 5, q: "BONUS: Vad innebär 'Volumetrisk effektivitet' (VE) för en förbränningsmotor?", r: "Förhållandet mellan luftmängden motorn faktiskt drar in och dess teoretiska volym", f: ["Hur mycket bränsle som förbränns per arbetsslag", "Motorns termiska verkningsgrad mätt i procent", "Mängden avgaser som effektivt pressas ut per minut"] },
         { lvl: 5, q: "BONUS: När man använder en tryckgivare i cylindern (in-cylinder pressure transducer) och motorn går på tomgång, vad indikerar ett ovanligt högt tryck under insugstakten?", r: "Att spjällhuset är helt öppet eller ett stort insugsläckage (t.ex. fastnad EGR)", f: ["Att insugsventilen stänger alldeles för sent", "Att avgasventilen inte öppnar som den ska", "Att kolvringarna är extremt slitna"] },
 
-];
 
-
-
+    ];
     // ========================================================
 
     const questionsPerLevel = [15, 15, 15, 15, 15]; 
@@ -447,7 +365,7 @@ const bonusQuestionsBank = [
     renderLeaderboards();
 
     function initGame() {
-        initAudio(); // Säkerställ att ljudmotorn startar
+        initAudio(); 
         const nameInput = document.getElementById("player-name").value;
         if(nameInput.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
         
@@ -455,8 +373,7 @@ const bonusQuestionsBank = [
         document.getElementById("start-screen").style.display = "none";
         document.getElementById("game-area").style.display = "block";
         
-        sfx.start(); // Spela start-ljud!
-        
+        sfx.start(); 
         currentLevel = 1; score = 0; lives = 3; 
         startLevel();
     }
@@ -469,7 +386,8 @@ const bonusQuestionsBank = [
         }
 
         let numQuestions = questionsPerLevel[currentLevel - 1] || 15;
-        let levelQs = allQuestions.filter(q => q.lvl === currentLevel && !q.bonus);
+        // Hämtar från listan "allQuestions"
+        let levelQs = allQuestions.filter(q => q.lvl === currentLevel);
         levelQs = levelQs.sort(() => 0.5 - Math.random());
         currentQuestions = levelQs.slice(0, numQuestions);
         
@@ -482,17 +400,19 @@ const bonusQuestionsBank = [
         inBonusRound = true;
         bonusCorrectCount = 0;
         
-        let levelBonusQs = allQuestions.filter(q => q.lvl === currentLevel && q.bonus === true);
+        // Hämtar nu från listan "bonusQuestions" istället!
+        let levelBonusQs = bonusQuestions.filter(q => q.lvl === currentLevel);
         if(levelBonusQs.length === 0) return endBonusRound();
 
         levelBonusQs = levelBonusQs.sort(() => 0.5 - Math.random());
+        // Klipper ut exakt 5 bonusfrågor (eller färre om du inte har lagt in 5 st)
         currentQuestions = levelBonusQs.slice(0, 5); 
         questionIndex = 0;
 
         document.getElementById("game-title").innerText = "★ BONUSRUNDA ★";
         document.getElementById("game-title").style.color = "#ff00ff";
         
-        sfx.levelUp(); // Spela fanfar inför bonus
+        sfx.levelUp(); 
         updateUI();
         showQuestion();
     }
@@ -505,12 +425,12 @@ const bonusQuestionsBank = [
 
         if(bonusCorrectCount === 5) {
             lives++;
-            sfx.levelUp(); // Spela fanfar för extra liv
+            sfx.levelUp(); 
             alert("5 RÄTT I BONUSRUNDAN! EXTRA LIV TILLDELAT! ❤");
         }
 
         currentLevel++;
-        sfx.levelUp(); // Spela fanfar för nästa nivå
+        sfx.levelUp(); 
         startLevel();
     }
 
@@ -555,7 +475,7 @@ const bonusQuestionsBank = [
         const allBtns = document.querySelectorAll('#answer-buttons .btn');
         allBtns.forEach(b => b.disabled = true);
         document.body.classList.add("flash-red");
-        sfx.wrong(); // Spela FEL-ljud när tiden tar slut
+        sfx.wrong(); 
         setTimeout(() => document.body.classList.remove("flash-red"), 400);
         
         setTimeout(() => handleNextQuestion(), 1000);
@@ -567,7 +487,7 @@ const bonusQuestionsBank = [
         allBtns.forEach(b => b.disabled = true);
 
         if (isCorrect) {
-            sfx.correct(); // Spela RÄTT-ljud!
+            sfx.correct(); 
             if(inBonusRound) {
                 score += 200; 
                 bonusCorrectCount++;
@@ -577,7 +497,7 @@ const bonusQuestionsBank = [
             clickedBtn.style.backgroundColor = "#00ff00"; 
             clickedBtn.style.color = "#000";
         } else {
-            sfx.wrong(); // Spela FEL-ljud!
+            sfx.wrong(); 
             clickedBtn.style.backgroundColor = "#ff0000"; 
             document.body.classList.add("flash-red");
             setTimeout(() => document.body.classList.remove("flash-red"), 400);
@@ -614,7 +534,7 @@ const bonusQuestionsBank = [
 
     function gameOver() {
         clearInterval(bonusTimer);
-        sfx.gameOver(); // Spela GAME OVER-ljud och stäng av musik!
+        sfx.gameOver(); 
         
         document.getElementById("game-area").style.display = "none";
         document.getElementById("end-screen").style.display = "block";
