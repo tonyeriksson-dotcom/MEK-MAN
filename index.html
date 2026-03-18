@@ -10,9 +10,6 @@
         #game-title { font-size: 28px; color: #fff; margin-bottom: 25px; text-shadow: 5px 5px #ff0000; letter-spacing: 3px; }
         #quiz-container { border: 4px solid #fff; padding: 25px; background-color: #000; box-shadow: 12px 12px 0px #333; text-align: left; position: relative; }
         
-        #music-btn { position: absolute; top: -35px; right: 0; font-family: 'Press Start 2P', cursive; font-size: 8px; background: #222; color: #00ff00; border: 1px solid #fff; padding: 8px; cursor: pointer; }
-        #music-btn:hover { background: #fff; color: #000; }
-
         #stats { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 15px; align-items: center; }
         #lives-display { color: #ff0000; letter-spacing: 5px; font-size: 16px; }
         #score-display { color: #00ff00; }
@@ -25,10 +22,6 @@
         
         #start-screen, #end-screen { text-align: center; padding: 20px 0; }
         input[type="text"] { font-family: 'Press Start 2P', cursive; background: #000; color: #00ff00; border: 2px solid #fff; padding: 15px; width: 80%; font-size: 12px; margin-bottom: 20px; text-align: center; text-transform: uppercase;}
-        input[type="text"]:focus { outline: none; border-color: #ff0000; }
-        
-        .leaderboard { text-align: left; font-size: 10px; line-height: 2; color: #00ff00; background: #111; padding: 20px; border: 2px dashed #333; margin-bottom: 20px;}
-        .leaderboard-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
         
         .flash-red { animation: blink 0.1s step-end 4; }
         @keyframes blink { 50% { background-color: #ff0000; } }
@@ -37,17 +30,12 @@
 <body>
 
 <div id="wrapper">
-    <button id="music-btn" onclick="toggleMusic()">🎵 MUSIK: AV</button>
     <div id="game-title">★ MEK-MAN ★</div>
 
     <div id="quiz-container">
         
         <div id="start-screen">
-            <div class="leaderboard">
-                <div style="text-align:center; margin-bottom:10px; color:#fff;">--- TOP 10 HIGH SCORES ---</div>
-                <div id="start-lb-content">Laddar resultat...</div>
-            </div>
-            <p style="font-size: 10px; line-height: 2.5; margin-bottom: 20px;">PRO-DATABASE v4.0 LOADED.<br>AUDIO SYSTEM ONLINE.<br>ENTER NAME TO COMPETE.</p>
+            <p style="font-size: 10px; line-height: 2.5; margin-bottom: 20px;">PRO-DATABASE LOADED.<br>ENTER NAME TO COMPETE.</p>
             <input type="text" id="player-name" placeholder="SKRIV DITT NAMN HÄR" maxlength="15">
             <button class="btn" style="text-align:center;" onclick="initGame()">[ STARTA DIAGNOSTIK ]</button>
         </div>
@@ -58,7 +46,6 @@
                 <div>SCORE:<span id="score-display">0000</span></div>
                 <div id="lives-display"></div>
             </div>
-            <div id="timer-display" style="color: #ff00ff; text-align: center; margin-bottom: 15px; font-size: 14px; letter-spacing: 2px;"></div>
             <div id="question-text">LADDAR...</div>
             <div id="answer-buttons"></div>
         </div>
@@ -66,10 +53,6 @@
         <div id="end-screen" style="display:none;">
             <h2 id="end-title" style="color:#ff0000; font-size:16px;">GAME OVER</h2>
             <p style="font-size: 10px; margin-bottom:20px;">DIN POÄNG: <span id="final-score"></span></p>
-            <div class="leaderboard">
-                <div style="text-align:center; margin-bottom:10px; color:#fff;">--- TOP 10 HIGH SCORES ---</div>
-                <div id="end-lb-content">Laddar resultat...</div>
-            </div>
             <button class="btn" style="text-align:center;" onclick="location.reload()">[ SPELA IGEN ]</button>
         </div>
 
@@ -77,45 +60,9 @@
 </div>
 
 <script>
-    // --- LJUDSYSTEM ---
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx;
-    function initAudio() { if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
-    function playTone(freq, type, duration, vol = 0.1) {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration);
-    }
-    let musicInterval; let musicPlaying = false; const melody = [261.63, 311.13, 392.00, 466.16, 392.00, 311.13]; let noteIdx = 0;
-    function toggleMusic() {
-        initAudio(); const btn = document.getElementById('music-btn');
-        if (musicPlaying) { clearInterval(musicInterval); musicPlaying = false; btn.innerText = "🎵 MUSIK: AV"; btn.style.color = "#00ff00"; } 
-        else { musicInterval = setInterval(() => { if(audioCtx && audioCtx.state === 'running') { playTone(melody[noteIdx], 'square', 0.1, 0.03); noteIdx = (noteIdx + 1) % melody.length; } }, 150); musicPlaying = true; btn.innerText = "🎵 MUSIK: PÅ"; btn.style.color = "#fff"; }
-    }
-    const sfx = {
-        start: () => { playTone(440, 'square', 0.1); setTimeout(() => playTone(660, 'square', 0.1), 100); setTimeout(() => playTone(880, 'square', 0.2), 200); },
-        correct: () => { playTone(880, 'sine', 0.1); setTimeout(() => playTone(1760, 'sine', 0.2), 100); },
-        wrong: () => { playTone(150, 'sawtooth', 0.3, 0.2); },
-        levelUp: () => { playTone(440, 'square', 0.1); setTimeout(() => playTone(554, 'square', 0.1), 100); setTimeout(() => playTone(659, 'square', 0.1), 200); setTimeout(() => playTone(880, 'square', 0.3), 300); },
-        gameOver: () => { playTone(400, 'sawtooth', 0.2, 0.2); setTimeout(() => playTone(350, 'sawtooth', 0.2, 0.2), 200); setTimeout(() => playTone(300, 'sawtooth', 0.2, 0.2), 400); setTimeout(() => playTone(200, 'sawtooth', 0.5, 0.2), 600); if(musicPlaying) toggleMusic(); }
-    };
-
-    // --- LEADERBOARD LOGIK ---
-    function renderLeaderboards() {
-        let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
-        let html = lb.length === 0 ? "<div style='text-align:center;'>INGA POÄNG ÄNNU! BLI DEN FÖRSTA!</div>" : lb.map((entry, i) => `<div class="leaderboard-row"><span>${i+1}. ${entry.name}</span><span>${entry.score} P</span></div>`).join('');
-        document.getElementById('start-lb-content').innerHTML = html; document.getElementById('end-lb-content').innerHTML = html;
-    }
-    function saveScore(name, finalScore) {
-        let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
-        lb.push({ name: name.toUpperCase(), score: finalScore }); lb.sort((a, b) => b.score - a.score); lb = lb.slice(0, 10);
-        localStorage.setItem('mekman_leaderboard', JSON.stringify(lb)); renderLeaderboards();
-    }
-
     // ========================================================
-    // --- KLISTRA IN DINA FRÅGOR (allQuestions & bonusQuestionsBank) HÄR UNDER ---
+    // --- 1. KLISTRA IN HELA DIN ALLQUESTIONS-LISTA HÄR ---
+    // (Byt ut min exempel-fråga mot dina ~170 frågor)
     // ========================================================
     
         
@@ -295,7 +242,7 @@
         { lvl: 5, q: "Varför måste man omedelbart utföra en Adaption med sitt diagnosverktyg efter att ha bytt ut bilens gasspjäll?", r: "För att motorstyrdonet måste få lära in och lagra det nya spjällets exakta fysiska ändlägen (stängt/öppet)", f: ["För att skydda den extremt dyra aluminiumkomponenten genom att spraya den med en osynlig lack inifrån", "För att komponenten oftast säljs i ett lätt begagnat och smutsigt skick och datorn måste hetta upp spjället", "För att verkstadens tekniker måste skriva av komponenten från reservdelslagret genom att klicka i ett program"] },
         { lvl: 5, q: "Nätverkets spänning dippar kraftigt vid last och styrenheten tappar minnet. Vad blir din första felsökningsmetod?", r: "Du sätter probarna för att mäta spänningsfall (Voltage Drop) tvärs över huvudreläet och jordflätan under startögonblicket", f: ["Du demonterar hela den integrerade skärmen från mittkonsolen och börjar löda om de trasiga chippen inuti kretskortet", "Du går direkt på det allra dyraste alternativet och byter okommenterat ut bilens fyratusen-kronors startbatteri", "Du bestämmer dig för att felkoden måste bero på utslitna slitbanor, så du byter snabbt ut de fyra hjulen"] }
 { lvl: 5, q: "Du mäter strömkurvan (Ampere) över en elektromagnetisk spridare med oscilloskop. Vad betyder den lilla 'knäcken' (Pintle Bump) på vägen upp i kurvan?", r: "Den visar det exakta mikrosekunden då spridarnålen rent mekaniskt lyfter från sitt säte och bränslet börjar flöda", f: ["Den är en felindikator på att spridarens inre spole har en kortslutning mot godset i motorn", "Den avslöjar att matartrycket fram till högtryckspumpen har sjunkit under ett kritiskt gränsvärde", "Det är den exakta elektriska brytpunkten då motorstyrdonet aktivt klipper bort jordningen till spridaren"] }, { lvl: 5, q: "I en bensinmotor med högtrycksinsprutning (GDI), vad händer om pumpens inloppsventil (Spill Valve) misslyckas med att stänga under pumpens uppåtgående slag?", r: "Inget högt railtryck kan byggas upp, bränslet pressas bara tillbaka ut i lågtryckskretsen och motorn vägrar starta", f: ["Railtrycket skenar okontrollerat ända tills säkerhetsventilen brister eller bränsleröret sprängs", "Injektorerna fastnar elektriskt i ett vidöppet läge vilket omedelbart dränker och hydraulåser motorn", "Systemet går blixtsnabbt över i Open Loop och styrdonet fyrdubblar spridarnas öppningstider för att kompensera"] }, { lvl: 5, q: "Vad krävs rent fysiskt för att en så kallad 'passiv regenerering' av partikelfiltret (DPF) ska inträffa naturligt, t.ex. vid motorvägskörning?", r: "Att avgaserna kontinuerligt håller en extremt hög temperatur (ofta över 350-400°C) för att sotet ska oxidera utan att extra bränsle sprutas in", f: ["Att föraren trampar ner frikopplingspedalen i minst 10 sekunder samtidigt som bilens hastighet överstiger 100 km/h", "Att styrdonet skickar en 100% PWM-signal till alla glödstift under en kraftig och långvarig acceleration", "Att bilens EGR-ventil öppnas fullt ut till 100% för att mata det igensatta filtret med maximerat syreflöde"] }
-{ lvl: 5, q: "Vad menas med 'Arbitrering' i ett CAN-bus nätverk när två styrenheter försöker skicka data exakt samtidigt?", r: "En prioritetslösning där meddelandet med flest dominanta nollor (0) i sin ID-kod vinner rätten att sändas först", f: ["En mekanisk omkopplare i styrdonet som stänger av den enhet som drar mest ström just då", "Ett felmeddelande som direkt stänger ner hela nätverket tills mekanikern har nollställt systemet", "Att styrdonet med den högsta fysiska temperaturen tvingas vänta i fem sekunder på kylning"] }, { lvl: 5, q: "Hur ser en helt felfri CAN-bus-signal ut när du granskar den över tid på ett tvåkanals oscilloskop?", r: "Spänningskurvorna för CAN-H och CAN-L är exakta spegelbilder av varandra; när den ena går upp går den andra ner", f: ["De två kurvorna följer varandra exakt parallellt åt samma håll, som två tåg på ett spår", "Signalen ser ut som en mjuk, rullande sinusvåg utan några som helst skarpa hörn", "CAN-H visar en fyrkantsvåg medan CAN-L är ett helt rakt streck på 12 Volt"] }, { lvl: 5, q: "Vad händer i ett 'Fault-Tolerant' CAN-nätverk (ofta för dörrar/komfort) om den ena CAN-kabeln klipps av helt?", r: "Nätverket övergår i 'Single Wire Mode' och styrdonen kan fortsätta prata nöd-data via jord och den hela kabeln", f: ["Bilen tvärnitar omedelbart och låser alla dörrar för att förhindra stöld av komfortkomponenterna", "Den avklippta kabeln börjar omedelbart brinna eftersom spänningen från den hela kabeln dubbleras", "Nätverket stänger ner sig helt och hållet på millisekunder och tappar all kontakt med omvärlden"] }
+
     ];
 
 
@@ -347,191 +294,119 @@ const bonusQuestionsBank = [
 
 
     // ========================================================
-    // --- KLISTRA IN OVANFÖR DENNA RAD ---
-    // ========================================================
 
     // --- SPELVARIABLAR OCH INSTÄLLNINGAR ---
-   const questionsPerLevel = [15, 15, 15, 15, 15]; // Antal frågor för nivå 1 till 5
-    const bonusPerLevel = 2; // Antal bonusfrågor mellan varje nivå
+    // Denna array styr exakt hur många frågor som hämtas per nivå.
+    const questionsPerLevel = [15, 15, 15, 15, 15]; 
 
-    let currentPlayerName = "";
     let currentLevel = 1;
     let score = 0;
     let lives = 3;
     let currentQuestions = [];
-    let currentBonusQuestions = [];
     let questionIndex = 0;
-    let isBonusRound = false;
-    let bonusTimeLeft = 15;
-    let bonusTimer;
-    let bonusQuestionCount = 0;
-
-    renderLeaderboards();
 
     // --- FUNKTIONER ---
     function initGame() {
         const nameInput = document.getElementById("player-name").value;
         if(nameInput.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
-        currentPlayerName = nameInput.trim();
+        
         document.getElementById("start-screen").style.display = "none";
         document.getElementById("game-area").style.display = "block";
-        sfx.start();
-        currentLevel = 1; score = 0; lives = 3; isBonusRound = false;
+        
+        currentLevel = 1; 
+        score = 0; 
+        lives = 3; 
         startLevel();
     }
 
     function startLevel() {
-        if(currentLevel > 5) { 
+        if(currentLevel > 5) { // Spelet har 5 nivåer
             document.getElementById("end-title").innerText = "GRATTIS DU VANN!";
             document.getElementById("end-title").style.color = "#00ff00";
             return gameOver();
         }
 
-        // Här tittar spelet på listan ovan och ser att det ska vara 15 frågor
-        let numQuestions = questionsPerLevel[currentLevel - 1];
+        // Bombsäker uträkning: Om arrayen saknas faller den tillbaka på 15
+        let numQuestions = questionsPerLevel[currentLevel - 1] || 15;
         
-        // HÄR ÄR MAGIN: ".slice(0, numQuestions)" är saxen som klipper bort resten!
-        currentQuestions = allQuestions.filter(q => q.lvl === currentLevel)
-                                       .sort(() => 0.5 - Math.random())
-                                       .slice(0, numQuestions);
+        // 1. Hämta bara frågor för rätt nivå
+        let levelQs = allQuestions.filter(q => q.lvl === currentLevel);
+        
+        // 2. Blanda dem
+        levelQs = levelQs.sort(() => 0.5 - Math.random());
+        
+        // 3. Klipp exakt listan vid 'numQuestions' (15 st)
+        currentQuestions = levelQs.slice(0, numQuestions);
         
         questionIndex = 0;
         updateUI();
         showQuestion();
     }
 
-    function startBonusRound() {
-        isBonusRound = true;
-        bonusQuestionCount = 0;
-        document.getElementById("lvl-display").innerText = " BONUS!";
-        sfx.levelUp(); 
-        
-        currentBonusQuestions = bonusQuestionsBank.filter(q => q.lvl === currentLevel).sort(() => 0.5 - Math.random()).slice(0, bonusPerLevel);
-
-        document.getElementById("timer-display").innerText = "";
-        document.getElementById("question-text").innerHTML = "<br><span style='color:#ff00ff; font-size:16px; text-align:center; display:block; line-height:1.5;'>GÖR DIG REDO FÖR<br>BONUS-RUNDAN!</span>";
-        document.getElementById("answer-buttons").innerHTML = ""; 
-        
-        setTimeout(() => { showQuestion(); }, 2500);
-    }
-
     function showQuestion() {
-        let qData;
-        const timerDisplay = document.getElementById("timer-display");
-
-        if (isBonusRound) {
-            qData = currentBonusQuestions[bonusQuestionCount];
-            bonusTimeLeft = 15;
-            timerDisplay.innerText = "⏳ TID: " + bonusTimeLeft + "s";
-            clearInterval(bonusTimer);
-            bonusTimer = setInterval(() => {
-                bonusTimeLeft--;
-                timerDisplay.innerText = "⏳ TID: " + bonusTimeLeft + "s";
-                if (bonusTimeLeft <= 0) {
-                    clearInterval(bonusTimer);
-                    sfx.wrong();
-                    handleTimeOut(); // Hantera om tiden tar slut
-                }
-            }, 1000);
-        } else {
-            qData = currentQuestions[questionIndex];
-            timerDisplay.innerText = "";
-        }
-
-        document.getElementById("question-text").innerText = qData.q;
+        let qData = currentQuestions[questionIndex];
+        
+        // Uppdatera frågetexten. Visar också vilken fråga i ordningen vi är på (t.ex. 1/15)
+        document.getElementById("question-text").innerText = `Fråga ${questionIndex + 1}/${currentQuestions.length}: \n\n${qData.q}`;
         
         let options = [qData.r, ...qData.f].sort(() => 0.5 - Math.random());
         let btnHTML = "";
+        
         options.forEach(opt => {
             let isCorrect = (opt === qData.r);
-            // Skickar med 'this' så att knappen vet vilken knapp som klickades
             btnHTML += `<button class="btn" onclick="checkAnswer(${isCorrect}, this)">${opt}</button>`;
         });
+        
         document.getElementById("answer-buttons").innerHTML = btnHTML;
     }
 
-    // Hanterar om tiden rinner ut i bonusrundan utan klick
-    function handleTimeOut() {
-        const allBtns = document.querySelectorAll('#answer-buttons .btn');
-        allBtns.forEach(b => b.disabled = true);
-        document.body.classList.add("flash-red");
-        setTimeout(() => document.body.classList.remove("flash-red"), 400);
-        setTimeout(handleNextQuestion, 1000);
-    }
-
     function checkAnswer(isCorrect, clickedBtn) {
-        clearInterval(bonusTimer);
-
-        // LÅS ALLA KNAPPAR (Löser dubbelklick-buggen)
+        // Lås knappar
         const allBtns = document.querySelectorAll('#answer-buttons .btn');
         allBtns.forEach(b => b.disabled = true);
 
         if (isCorrect) {
-            sfx.correct();
-            score += isBonusRound ? 200 : 100; 
-            clickedBtn.style.backgroundColor = "#00ff00"; // Gör knappen grön
+            score += 100; 
+            clickedBtn.style.backgroundColor = "#00ff00"; 
             clickedBtn.style.color = "#000";
         } else {
-            sfx.wrong();
-            clickedBtn.style.backgroundColor = "#ff0000"; // Gör knappen röd
+            clickedBtn.style.backgroundColor = "#ff0000"; 
             document.body.classList.add("flash-red");
             setTimeout(() => document.body.classList.remove("flash-red"), 400);
-            if (!isBonusRound) lives--; 
+            lives--; 
         }
 
         updateUI();
 
-        // Vänta 1 sekund innan spelet går vidare så spelaren ser färgerna
         setTimeout(() => {
             if (lives <= 0) {
                 return gameOver();
             }
             handleNextQuestion();
-        }, 1000);
+        }, 1000); // Går vidare efter 1 sekund
     }
 
     function handleNextQuestion() {
-        if (isBonusRound) {
-            bonusQuestionCount++;
-            if (bonusQuestionCount >= currentBonusQuestions.length) { 
-                isBonusRound = false;
-                currentLevel++;
-                
-                if(currentLevel > 5) {
-                    startLevel(); // Leder till vinstskärmen
-                } else {
-                    sfx.levelUp();
-                    document.getElementById("timer-display").innerText = "";
-                    document.getElementById("question-text").innerHTML = `<br><span style='color:#ffff00; font-size:14px; text-align:center; display:block; line-height:1.5;'>BONUS KLAR!<br><br>GÖR DIG REDO FÖR<br>NIVÅ ${currentLevel}</span>`;
-                    document.getElementById("answer-buttons").innerHTML = ""; 
-                    setTimeout(() => { startLevel(); }, 2500);
-                }
-            } else {
-                showQuestion();
-            }
+        questionIndex++;
+        // Har vi svarat på alla framslumpade frågor för denna nivå?
+        if (questionIndex >= currentQuestions.length) {
+            currentLevel++;
+            startLevel(); // Gå till nästa nivå
         } else {
-            questionIndex++;
-            if (questionIndex >= currentQuestions.length) {
-                startBonusRound();
-            } else {
-                showQuestion();
-            }
+            showQuestion(); // Visa nästa fråga på samma nivå
         }
     }
 
     function updateUI() {
         document.getElementById("score-display").innerText = score.toString().padStart(4, '0');
         document.getElementById("lives-display").innerText = "❤".repeat(lives);
-        if(!isBonusRound) document.getElementById("lvl-display").innerText = currentLevel;
+        document.getElementById("lvl-display").innerText = currentLevel;
     }
 
     function gameOver() {
-        sfx.gameOver();
-        clearInterval(bonusTimer); 
         document.getElementById("game-area").style.display = "none";
         document.getElementById("end-screen").style.display = "block";
         document.getElementById("final-score").innerText = score;
-        saveScore(currentPlayerName, score);
     }
 </script>
 </body>
