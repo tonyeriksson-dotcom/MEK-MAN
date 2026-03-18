@@ -440,40 +440,7 @@
         { lvl: 5, q: "BONUS: När man använder en tryckgivare i cylindern (in-cylinder pressure transducer) och motorn går på tomgång, vad indikerar ett ovanligt högt tryck under insugstakten?", r: "Att spjällhuset är helt öppet eller ett stort insugsläckage (t.ex. fastnad EGR)", f: ["Att insugsventilen stänger alldeles för sent", "Att avgasventilen inte öppnar som den ska", "Att kolvringarna är extremt slitna"] }
         
     ];
-
-    // --- SPELVARIABLAR ---
-    let currentPlayerName = "";
-    let currentLevel = 1;
-    let score = 0;
-    let lives = 3;
-    let currentQuestions = [];
-    let currentBonusQuestions = [];
-    let questionIndex = 0;
-    let isBonusRound = false;
-    let bonusTimeLeft = 15;
-    let bonusTimer;
-    let bonusQuestionCount = 0;
-
-    // Kalla på denna direkt när sidan laddas så start-topplistan fylls i
-    renderLeaderboards();
-
-    // --- FUNKTIONER ---
-    function initGame() {
-        const nameInput = document.getElementById("player-name").value;
-        if(nameInput.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
-        
-        currentPlayerName = nameInput.trim();
-        document.getElementById("start-screen").style.display = "none";
-        document.getElementById("game-area").style.display = "block";
-        sfx.start();
-        
-        currentLevel = 1;
-        score = 0;
-        lives = 3;
-        isBonusRound = false;
-        startLevel();
-    }
-// Funktion för att blanda en array ordentligt (Fisher-Yates shuffle)
+    // Funktion för att blanda en array ordentligt (Fisher-Yates shuffle)
 function shuffleArray(array) {
     let currentIndex = array.length, randomIndex;
     while (currentIndex !== 0) {
@@ -512,6 +479,39 @@ function startNewGame() {
     // Här anropar du funktionen för att visa den första frågan på skärmen
     // t.ex. displayQuestion(0);
 }
+
+    // --- SPELVARIABLAR ---
+    let currentPlayerName = "";
+    let currentLevel = 1;
+    let score = 0;
+    let lives = 3;
+    let currentQuestions = [];
+    let currentBonusQuestions = [];
+    let questionIndex = 0;
+    let isBonusRound = false;
+    let bonusTimeLeft = 15;
+    let bonusTimer;
+    let bonusQuestionCount = 0;
+
+    // Kalla på denna direkt när sidan laddas så start-topplistan fylls i
+    renderLeaderboards();
+
+    // --- FUNKTIONER ---
+    function initGame() {
+        const nameInput = document.getElementById("player-name").value;
+        if(nameInput.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
+        
+        currentPlayerName = nameInput.trim();
+        document.getElementById("start-screen").style.display = "none";
+        document.getElementById("game-area").style.display = "block";
+        sfx.start();
+        
+        currentLevel = 1;
+        score = 0;
+        lives = 3;
+        isBonusRound = false;
+        startLevel();
+    }
     function startLevel() {
         currentQuestions = allQuestions.filter(q => q.lvl === currentLevel).sort(() => 0.5 - Math.random()).slice(0, 5);
         
