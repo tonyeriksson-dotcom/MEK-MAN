@@ -10,6 +10,10 @@
         #game-title { font-size: 28px; color: #fff; margin-bottom: 25px; text-shadow: 5px 5px #ff0000; letter-spacing: 3px; }
         #quiz-container { border: 4px solid #fff; padding: 25px; background-color: #000; box-shadow: 12px 12px 0px #333; text-align: left; position: relative; }
         
+        /* MUSIKKNAPP */
+        #music-btn { position: absolute; top: -35px; right: 0; font-family: 'Press Start 2P', cursive; font-size: 8px; background: #222; color: #00ff00; border: 1px solid #fff; padding: 8px; cursor: pointer; }
+        #music-btn:hover { background: #fff; color: #000; }
+
         #stats { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 15px; align-items: center; }
         #lives-display { color: #ff0000; letter-spacing: 5px; font-size: 16px; }
         #score-display { color: #00ff00; }
@@ -28,7 +32,6 @@
         #start-screen, #end-screen { text-align: center; padding: 20px 0; }
         input[type="text"] { font-family: 'Press Start 2P', cursive; background: #000; color: #00ff00; border: 2px solid #fff; padding: 15px; width: 80%; font-size: 12px; margin-bottom: 20px; text-align: center; text-transform: uppercase;}
         
-        /* HIGH SCORE DESIGN */
         .leaderboard { text-align: left; font-size: 10px; line-height: 2; color: #00ff00; background: #111; padding: 20px; border: 2px dashed #333; margin-bottom: 20px;}
         .leaderboard-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
         
@@ -39,11 +42,8 @@
 </head>
 <body>
 
-<audio id="bg-music" src="musik.mp3" loop></audio>
-<audio id="sfx-correct" src="ratt.mp3"></audio>
-<audio id="sfx-wrong" src="fel.mp3"></audio>
-<audio id="sfx-gameover" src="gameover.mp3"></audio>
 <div id="wrapper">
+    <button id="music-btn" onclick="toggleMusic()">🎵 MUSIK: AV</button>
     <div id="game-title">★ MEK-MAN ★</div>
 
     <div id="quiz-container">
@@ -53,7 +53,7 @@
                 <div style="text-align:center; margin-bottom:10px; color:#fff;">--- TOP 10 HIGH SCORES ---</div>
                 <div id="start-lb-content">Laddar resultat...</div>
             </div>
-            <p style="font-size: 10px; line-height: 2.5; margin-bottom: 20px;">PRO-DATABASE LOADED.<br>ENTER NAME TO COMPETE.</p>
+            <p style="font-size: 10px; line-height: 2.5; margin-bottom: 20px;">PRO-DATABASE v4.0 LOADED.<br>AUDIO SYSTEM ONLINE.<br>ENTER NAME TO COMPETE.</p>
             <input type="text" id="player-name" placeholder="SKRIV DITT NAMN HÄR" maxlength="15">
             <button class="btn" style="text-align:center;" onclick="initGame()">[ STARTA DIAGNOSTIK ]</button>
         </div>
@@ -86,6 +86,98 @@
 </div>
 
 <script>
+    // ========================================================
+    // --- 1. CHIPTUNE LJUDMOTORN (Web Audio API) ---
+    // (Genererar Nintendo-ljud direkt i kod)
+    // ========================================================
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    
+    // Funktion för att starta ljudet (måste triggas av användare)
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContext();
+            console.log("AudioContext Aktiverad!");
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // Grundfunktion för att spela en NES-ton
+    function playTone(freq, type, duration, vol = 0.1) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type; // 'square' (fyrkant), 'sawtooth', 'triangle', 'sine'
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // --- BAKGRUNDSMUSIK (MEK-LOOP) ---
+    let musicInterval;
+    let musicPlaying = false;
+    const melody = [261.63, 311.13, 392.00, 466.16, 392.00, 311.13]; // C, Eb, G, Bb...
+    let noteIdx = 0;
+
+    function toggleMusic() {
+        initAudio(); // Se till att ljudet är igång
+        const btn = document.getElementById('music-btn');
+        if (musicPlaying) {
+            clearInterval(musicInterval);
+            musicPlaying = false;
+            btn.innerText = "🎵 MUSIK: AV";
+            btn.style.color = "#00ff00";
+        } else {
+            // Spela en ton var 150:e ms (äkta arpeggio-loop)
+            musicInterval = setInterval(() => {
+                if(audioCtx && audioCtx.state === 'running') {
+                    // NES använder ofta 'square' våg för melodi och bas
+                    playTone(melody[noteIdx], 'square', 0.1, 0.03); 
+                    noteIdx = (noteIdx + 1) % melody.length;
+                }
+            }, 150);
+            musicPlaying = true;
+            btn.innerText = "🎵 MUSIK: PÅ";
+            btn.style.color = "#fff";
+        }
+    }
+
+    // --- LJUDEFFEKTER (SFX) ---
+    const sfx = {
+        start: () => { // Start-fanfar
+            playTone(440, 'square', 0.1); 
+            setTimeout(() => playTone(660, 'square', 0.1), 100);
+            setTimeout(() => playTone(880, 'square', 0.2), 200);
+        },
+        correct: () => { // Rätt svar (kort, positiv)
+            playTone(880, 'sine', 0.1); 
+            setTimeout(() => playTone(1760, 'sine', 0.2), 100);
+        },
+        wrong: () => { // Fel svar (brutalt, dissonant)
+            playTone(150, 'sawtooth', 0.3, 0.2); // Använder 'sawtooth' för elakare ljud
+        },
+        levelUp: () => { // Nivå upp (stegrande)
+            playTone(440, 'square', 0.1);
+            setTimeout(() => playTone(554, 'square', 0.1), 100);
+            setTimeout(() => playTone(659, 'square', 0.1), 200);
+            setTimeout(() => playTone(880, 'square', 0.3), 300);
+        },
+        gameOver: () => { // Game Over (sorglig)
+            playTone(400, 'sawtooth', 0.2, 0.2);
+            setTimeout(() => playTone(350, 'sawtooth', 0.2, 0.2), 200);
+            setTimeout(() => playTone(300, 'sawtooth', 0.2, 0.2), 400);
+            setTimeout(() => playTone(200, 'sawtooth', 0.5, 0.2), 600);
+            if(musicPlaying) toggleMusic(); // Stäng av musiken om den är igång
+        }
+    };
+    // ========================================================
+
     // --- LEADERBOARD LOGIK ---
     function renderLeaderboards() {
         let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
@@ -104,11 +196,9 @@
     }
 
     // ========================================================
-    // --- KLISTRA IN DINA FRÅGOR HÄR ---
-    // (Glöm inte kommatecken och bonus: true på bonusfrågorna)
+    // --- 2. KLISTRA IN DINA FRÅGOR HÄR ---
     // ========================================================
     // --- FRÅGEBANK ---
-    
     const allQuestions = [
         // NIVÅ 1 (Grundläggande underhåll & verktyg)
         { lvl: 1, q: "Vilken färg har kylarvätska av typen Longlife (G12+)?", r: "Oftast röd eller rosa", f: ["Alltid mörkblå nyans", "Oftast neongrön färg", "Alltid klargul nyans"] },
@@ -356,16 +446,8 @@ const bonusQuestionsBank = [
 
     renderLeaderboards();
 
-    // --- LJUD FUNKTIONER ---
-    function playSound(id) {
-        let sound = document.getElementById(id);
-        if(sound) {
-            sound.currentTime = 0; // Spolar tillbaka ljudet så det kan spelas snabbt igen
-            sound.play().catch(e => console.log("Ljud kunde inte spelas: ", e));
-        }
-    }
-
     function initGame() {
+        initAudio(); // Säkerställ att ljudmotorn startar
         const nameInput = document.getElementById("player-name").value;
         if(nameInput.trim() === "") return alert("SKRIV IN ETT NAMN FÖR ATT STARTA!");
         
@@ -373,12 +455,7 @@ const bonusQuestionsBank = [
         document.getElementById("start-screen").style.display = "none";
         document.getElementById("game-area").style.display = "block";
         
-        // Starta bakgrundsmusiken (volymen är sänkt till 50% så det inte dränker effekterna)
-        let bgm = document.getElementById("bg-music");
-        if(bgm) {
-            bgm.volume = 0.5;
-            bgm.play().catch(e => console.log("Musik autoplay blockerad av webbläsaren"));
-        }
+        sfx.start(); // Spela start-ljud!
         
         currentLevel = 1; score = 0; lives = 3; 
         startLevel();
@@ -415,6 +492,7 @@ const bonusQuestionsBank = [
         document.getElementById("game-title").innerText = "★ BONUSRUNDA ★";
         document.getElementById("game-title").style.color = "#ff00ff";
         
+        sfx.levelUp(); // Spela fanfar inför bonus
         updateUI();
         showQuestion();
     }
@@ -427,10 +505,12 @@ const bonusQuestionsBank = [
 
         if(bonusCorrectCount === 5) {
             lives++;
+            sfx.levelUp(); // Spela fanfar för extra liv
             alert("5 RÄTT I BONUSRUNDAN! EXTRA LIV TILLDELAT! ❤");
         }
 
         currentLevel++;
+        sfx.levelUp(); // Spela fanfar för nästa nivå
         startLevel();
     }
 
@@ -475,7 +555,7 @@ const bonusQuestionsBank = [
         const allBtns = document.querySelectorAll('#answer-buttons .btn');
         allBtns.forEach(b => b.disabled = true);
         document.body.classList.add("flash-red");
-        playSound("sfx-wrong"); // Ljud för fel/tiden ute
+        sfx.wrong(); // Spela FEL-ljud när tiden tar slut
         setTimeout(() => document.body.classList.remove("flash-red"), 400);
         
         setTimeout(() => handleNextQuestion(), 1000);
@@ -487,7 +567,7 @@ const bonusQuestionsBank = [
         allBtns.forEach(b => b.disabled = true);
 
         if (isCorrect) {
-            playSound("sfx-correct"); // Spela ljud för RÄTT
+            sfx.correct(); // Spela RÄTT-ljud!
             if(inBonusRound) {
                 score += 200; 
                 bonusCorrectCount++;
@@ -497,7 +577,7 @@ const bonusQuestionsBank = [
             clickedBtn.style.backgroundColor = "#00ff00"; 
             clickedBtn.style.color = "#000";
         } else {
-            playSound("sfx-wrong"); // Spela ljud för FEL
+            sfx.wrong(); // Spela FEL-ljud!
             clickedBtn.style.backgroundColor = "#ff0000"; 
             document.body.classList.add("flash-red");
             setTimeout(() => document.body.classList.remove("flash-red"), 400);
@@ -534,18 +614,12 @@ const bonusQuestionsBank = [
 
     function gameOver() {
         clearInterval(bonusTimer);
+        sfx.gameOver(); // Spela GAME OVER-ljud och stäng av musik!
+        
         document.getElementById("game-area").style.display = "none";
         document.getElementById("end-screen").style.display = "block";
         document.getElementById("final-score").innerText = score;
         
-        // Stäng av musiken och spela game over-ljud
-        let bgm = document.getElementById("bg-music");
-        if(bgm) {
-            bgm.pause();
-            bgm.currentTime = 0;
-        }
-        playSound("sfx-gameover");
-
         saveScore(currentPlayerName, score);
     }
 </script>
