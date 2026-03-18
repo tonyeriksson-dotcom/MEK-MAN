@@ -473,19 +473,6 @@
         isBonusRound = false;
         startLevel();
     }
-
-    function startLevel() {
-        currentQuestions = allQuestions.filter(q => q.lvl === currentLevel).sort(() => 0.5 - Math.random()).slice(0, 5);
-        
-        if(currentQuestions.length === 0) {
-            alert("GRATTIS! Du har klarat alla nuvarande nivåer!");
-            return gameOver();
-        }
-
-        questionIndex = 0;
-        updateUI();
-        showQuestion();
-    }
 // Funktion för att blanda en array ordentligt (Fisher-Yates shuffle)
 function shuffleArray(array) {
     let currentIndex = array.length, randomIndex;
@@ -525,6 +512,19 @@ function startNewGame() {
     // Här anropar du funktionen för att visa den första frågan på skärmen
     // t.ex. displayQuestion(0);
 }
+    function startLevel() {
+        currentQuestions = allQuestions.filter(q => q.lvl === currentLevel).sort(() => 0.5 - Math.random()).slice(0, 5);
+        
+        if(currentQuestions.length === 0) {
+            alert("GRATTIS! Du har klarat alla nuvarande nivåer!");
+            return gameOver();
+        }
+
+        questionIndex = 0;
+        updateUI();
+        showQuestion();
+    }
+
     function startBonusRound() {
         isBonusRound = true;
         bonusQuestionCount = 0;
