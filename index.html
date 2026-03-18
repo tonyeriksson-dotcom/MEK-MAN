@@ -435,30 +435,38 @@
     }
 
     function showQuestion() {
-        let qData = currentQuestions[questionIndex];
-        
-        document.getElementById("question-tracker").innerText = `Fråga ${questionIndex + 1} av ${currentQuestions.length}`;
-        document.getElementById("question-text").innerText = qData.q;
-        
-        let options = [qData.r, ...qData.f].sort(() => 0.5 - Math.random());
-        let btnHTML = "";
-        
-        options.forEach(opt => {
-            let isCorrect = (opt === qData.r);
-            btnHTML += `<button class="btn" onclick="checkAnswer(${isCorrect}, this)">${opt}</button>`;
-        });
-        
-        document.getElementById("answer-buttons").innerHTML = btnHTML;
+    // 1. Säkerhetskoll: Om det inte finns några frågor inlästa, hoppa ur.
+    if (!currentQuestions || currentQuestions.length === 0) return;
 
-        if(inBonusRound) {
-            // Kolla om timer-display faktiskt finns i din HTML innan vi ändrar den!
-            let timerEl = document.getElementById("timer-display");
-            if (timerEl) {
-                timerEl.style.display = "block";
-            }
+    let qData = currentQuestions[questionIndex];
+    
+    document.getElementById("question-tracker").innerText = `Fråga ${questionIndex + 1} av ${currentQuestions.length}`;
+    document.getElementById("question-text").innerText = qData.q;
+    
+    let options = [qData.r, ...qData.f].sort(() => 0.5 - Math.random());
+    let btnHTML = "";
+    
+    options.forEach(opt => {
+        let isCorrect = (opt === qData.r);
+        btnHTML += `<button class="btn" onclick="checkAnswer(${isCorrect}, this)">${opt}</button>`;
+    });
+    
+    document.getElementById("answer-buttons").innerHTML = btnHTML;
+
+    // 2. Hantera bonusrundan utan att krascha
+    if(inBonusRound) {
+        let timerEl = document.getElementById("timer-display");
+        // Tänd timern BARA om lådan finns i HTML
+        if (timerEl) {
+            timerEl.style.display = "block";
+        }
+        
+        // Starta timern BARA om funktionen "startTimer" finns i din kod
+        if (typeof startTimer === "function") {
             startTimer();
         }
     }
+}
     function startTimer() {
         clearInterval(bonusTimer);
         timeLeft = 15;
