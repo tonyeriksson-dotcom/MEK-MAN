@@ -486,7 +486,45 @@
         updateUI();
         showQuestion();
     }
+// Funktion för att blanda en array ordentligt (Fisher-Yates shuffle)
+function shuffleArray(array) {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
+}
 
+// Funktion som plockar ett specifikt antal slumpade frågor från en viss nivå
+function getRandomQuestions(level, count) {
+    // 1. Hämta bara frågorna för rätt nivå från din stora databas
+    const levelQuestions = allQuestions.filter(q => q.lvl === level);
+    
+    // 2. Blanda dem ordentligt
+    const shuffled = shuffleArray([...levelQuestions]);
+    
+    // 3. Klipp ut exakt så många vi bad om
+    return shuffled.slice(0, count);
+}
+
+// Skapa spelrundans 15 frågor (Det klassiska upplägget)
+let currentRoundQuestions = [];
+
+function startNewGame() {
+    currentRoundQuestions = [
+        ...getRandomQuestions(1, 4), // 4 lätta frågor
+        ...getRandomQuestions(2, 4), // 4 medelsvåra frågor
+        ...getRandomQuestions(3, 3), // 3 utmanande frågor
+        ...getRandomQuestions(4, 2), // 2 svåra frågor
+        ...getRandomQuestions(5, 2)  // 2 expertfrågor
+    ];
+    
+    console.log("Nytt spel startat! Här är dina 15 frågor:", currentRoundQuestions);
+    // Här anropar du funktionen för att visa den första frågan på skärmen
+    // t.ex. displayQuestion(0);
+}
     function startBonusRound() {
         isBonusRound = true;
         bonusQuestionCount = 0;
