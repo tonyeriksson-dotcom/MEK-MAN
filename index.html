@@ -111,17 +111,45 @@
     };
 
     // --- LEADERBOARD LOGIK ---
-    function renderLeaderboards() {
-        let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
-        let html = lb.length === 0 ? "<div style='text-align:center;'>INGA POÄNG ÄNNU! BLI DEN FÖRSTA!</div>" : lb.map((entry, i) => `<div class="leaderboard-row"><span>${i+1}. ${entry.name}</span><span>${entry.score} P</span></div>`).join('');
-        document.getElementById('start-lb-content').innerHTML = html; document.getElementById('end-lb-content').innerHTML = html;
-    }
-    function saveScore(name, finalScore) {
-        let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
-        lb.push({ name: name.toUpperCase(), score: finalScore }); lb.sort((a, b) => b.score - a.score); lb = lb.slice(0, 10);
-        localStorage.setItem('mekman_leaderboard', JSON.stringify(lb)); renderLeaderboards();
-    }
+    // Funktion för att rita upp listan på skärmen
+function renderLeaderboards() {
+    // 1. Hämta sparad data från webbläsarens minne. Finns inget, skapa en tom lista '[]'
+    let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
+    
+    // 2. Skapa texten som ska visas
+    let html = lb.length === 0 
+        ? "<div style='text-align:center;'>INGA POÄNG ÄNNU! BLI DEN FÖRSTA!</div>" 
+        : lb.map((entry, i) => `<div class="leaderboard-row"><span>${i+1}. ${entry.name}</span><span>${entry.score} P</span></div>`).join('');
+    
+    // 3. Skicka in texten i HTML-lådorna (om de finns)
+    let startLb = document.getElementById('start-lb-content');
+    let endLb = document.getElementById('end-lb-content');
+    if(startLb) startLb.innerHTML = html; 
+    if(endLb) endLb.innerHTML = html;
+}
 
+// Funktion för att spara en ny poäng
+function saveScore(name, finalScore) {
+    if (!name || name.trim() === "") name = "MEKANIKER"; // Om namnet är tomt
+    
+    // 1. Hämta nuvarande lista
+    let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
+    
+    // 2. Lägg till det nya resultatet
+    lb.push({ name: name.toUpperCase(), score: finalScore }); 
+    
+    // 3. Sortera listan så högsta poäng hamnar överst
+    lb.sort((a, b) => b.score - a.score); 
+    
+    // 4. Behåll bara de 10 bästa resultaten (Topp 10)
+    lb = lb.slice(0, 10);
+    
+    // 5. Spara den uppdaterade listan i webbläsarens minne
+    localStorage.setItem('mekman_leaderboard', JSON.stringify(lb)); 
+    
+    // 6. Uppdatera skärmen med den nya listan
+    renderLeaderboards();
+}
     // ========================================================
     // 1. KLISTRA IN DINA VANLIGA FRÅGOR HÄR:
     // ========================================================
