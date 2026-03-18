@@ -451,11 +451,14 @@
         document.getElementById("answer-buttons").innerHTML = btnHTML;
 
         if(inBonusRound) {
-            document.getElementById("timer-display").style.display = "block";
+            // Kolla om timer-display faktiskt finns i din HTML innan vi ändrar den!
+            let timerEl = document.getElementById("timer-display");
+            if (timerEl) {
+                timerEl.style.display = "block";
+            }
             startTimer();
         }
     }
-
     function startTimer() {
         clearInterval(bonusTimer);
         timeLeft = 15;
