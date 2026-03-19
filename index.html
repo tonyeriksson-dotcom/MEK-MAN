@@ -110,46 +110,78 @@
         gameOver: () => { playTone(400, 'sawtooth', 0.2, 0.2); setTimeout(() => playTone(350, 'sawtooth', 0.2, 0.2), 200); setTimeout(() => playTone(300, 'sawtooth', 0.2, 0.2), 400); setTimeout(() => playTone(200, 'sawtooth', 0.5, 0.2), 600); if(musicPlaying) toggleMusic(); }
     };
 
-    // --- LEADERBOARD LOGIK ---
-    // Funktion för att rita upp listan på skärmen
-function renderLeaderboards() {
-    // 1. Hämta sparad data från webbläsarens minne. Finns inget, skapa en tom lista '[]'
-    let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
-    
-    // 2. Skapa texten som ska visas
-    let html = lb.length === 0 
+    // ==========================================
+// GLOBAL HIGH SCORE (MOLNET) ☁️
+// ==========================================
+
+const BIN_ID = "69bbabdcb7ec241ddc80e64d";
+const API_KEY = "$2a$10$7NzLWDBdrb.7HEF9cTfcQOu.NukeRWzJ1O.wO1MTXV1r9dEjM6G5y";
+
+// Funktion för att rita upp listan på skärmen
+function renderLeaderboards(lb) {
+    let html = (!lb || lb.length === 0) 
         ? "<div style='text-align:center;'>INGA POÄNG ÄNNU! BLI DEN FÖRSTA!</div>" 
         : lb.map((entry, i) => `<div class="leaderboard-row"><span>${i+1}. ${entry.name}</span><span>${entry.score} P</span></div>`).join('');
     
-    // 3. Skicka in texten i HTML-lådorna (om de finns)
     let startLb = document.getElementById('start-lb-content');
     let endLb = document.getElementById('end-lb-content');
     if(startLb) startLb.innerHTML = html; 
     if(endLb) endLb.innerHTML = html;
 }
 
-// Funktion för att spara en ny poäng
-function saveScore(name, finalScore) {
-    if (!name || name.trim() === "") name = "MEKANIKER"; // Om namnet är tomt
+// Funktion för att hämta listan från nätet när spelet startar
+async function loadLeaderboard() {
+    let startLb = document.getElementById('start-lb-content');
+    if(startLb) startLb.innerHTML = "<div style='text-align:center;'>Laddar data från nätet... 📡</div>";
     
-    // 1. Hämta nuvarande lista
-    let lb = JSON.parse(localStorage.getItem('mekman_leaderboard') || '[]');
+    try {
+        let response = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': API_KEY }
+        });
+        let data = await response.json();
+        let lb = data.record || [];
+        renderLeaderboards(lb);
+        return lb;
+    } catch (error) {
+        console.error("Glappkontakt med servern!", error);
+        if(startLb) startLb.innerHTML = "<div style='text-align:center; color:#ff0000;'>Kunde inte ansluta till databasen 🔌</div>";
+        return [];
+    }
+}
+
+// Funktion för att spara upp till nätet när spelet är slut
+async function saveScore(name, finalScore) {
+    if (!name || name.trim() === "") name = "MEKANIKER";
     
-    // 2. Lägg till det nya resultatet
+    // 1. Hämta senaste listan
+    let lb = await loadLeaderboard(); 
+    
+    // 2. Lägg till din poäng
     lb.push({ name: name.toUpperCase(), score: finalScore }); 
     
-    // 3. Sortera listan så högsta poäng hamnar överst
+    // 3. Sortera och behåll Topp 10
     lb.sort((a, b) => b.score - a.score); 
-    
-    // 4. Behåll bara de 10 bästa resultaten (Topp 10)
     lb = lb.slice(0, 10);
-    
-    // 5. Spara den uppdaterade listan i webbläsarens minne
-    localStorage.setItem('mekman_leaderboard', JSON.stringify(lb)); 
-    
-    // 6. Uppdatera skärmen med den nya listan
-    renderLeaderboards();
+
+    // 4. Skicka upp till molnet
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': API_KEY
+            },
+            body: JSON.stringify(lb)
+        });
+        // Rita upp den nya listan när det är sparat
+        renderLeaderboards(lb);
+    } catch (error) {
+        console.error("Kunde inte spara poängen!", error);
+    }
 }
+
+// Dra igång motorn: Hämta listan direkt när sidan laddas
+loadLeaderboard();
     // ========================================================
     // 1. KLISTRA IN DINA VANLIGA FRÅGOR HÄR:
     // ========================================================
